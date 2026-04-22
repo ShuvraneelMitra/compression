@@ -1,8 +1,8 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 
-#include "metrics.hpp"
-#include "lossless/huffman.hpp"
+#include "../metrics.hpp"
+#include "../lossless/huffman.hpp"
 
 int main() {
     cv::Mat img = cv::imread("../test_img.bmp", cv::IMREAD_COLOR);
