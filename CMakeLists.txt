@@ -7,8 +7,8 @@ set(CMAKE_CXX_COMPILER g++)
 find_package(OpenCV REQUIRED)
 
 add_executable(test 
-               tests/test_huffman.cpp
+               tests/test_lz.cpp
                metrics.cpp
-               lossless/huffman.cpp
+               lossless/lempel_ziv.cpp
               )
 target_link_libraries(test PRIVATE ${OpenCV_LIBS})

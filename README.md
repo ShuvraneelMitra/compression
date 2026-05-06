@@ -7,3 +7,4 @@ I took a course in my sixth semester called "*Multimedia Systems and Application
 
 - Lossless Compression Algorithms
     - Huffman Coding
+    - Lempel-Ziv Coding
