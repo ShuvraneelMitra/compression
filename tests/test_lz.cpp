@@ -5,7 +5,7 @@
 #include "../lossless/lempel_ziv.hpp"
 
 int main() {
-    cv::Mat img = cv::imread("../low_entropy.bmp", cv::IMREAD_COLOR);
+    cv::Mat img = cv::imread("../test_imgs/low_entropy.bmp", cv::IMREAD_COLOR);
     if (img.empty()) {
         std::cerr << "Error: could not load image\n";
         return -1;
@@ -28,7 +28,7 @@ int main() {
     cv::imshow("Decoded", out);
     cv::waitKey(0);
     
-    std::filesystem::path p{"../low_entropy.bmp"};
+    std::filesystem::path p{"../test_imgs/low_entropy.bmp"};
     // Returns file size in bytes as std::uintmax_t
     auto init_size = std::filesystem::file_size(p); 
     std::cout << "Original file size: " << init_size << " bytes\n";

@@ -11,8 +11,9 @@ set(CMAKE_CXX_COMPILER g++)
 find_package(OpenCV REQUIRED)
 
 add_executable(test 
-               tests/test_runl.cpp
+               tests/test_predictive.cpp
                metrics.cpp
-               lossless/run_length.cpp
+               lossless/huffman.cpp
+               lossless/predictive.cpp
               )
 target_link_libraries(test PRIVATE ${OpenCV_LIBS})

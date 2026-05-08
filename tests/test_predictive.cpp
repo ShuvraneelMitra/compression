@@ -3,9 +3,10 @@
 #include <filesystem>
 
 #include "../lossless/huffman.hpp"
+#include "../lossless/predictive.hpp"
 
 int main() {
-    cv::Mat img = cv::imread("../test_imgs/grayscale.bmp", cv::IMREAD_COLOR);
+    cv::Mat1b img = cv::imread("../test_imgs/grayscale.bmp", cv::IMREAD_GRAYSCALE);
     if (img.empty()) {
         std::cerr << "Error: could not load image\n";
         return -1;
@@ -16,14 +17,23 @@ int main() {
               << " Channels: " << img.channels() << std::endl;
     cv::imshow("Display", img);
     cv::waitKey(0);
+
+    cv::Mat1b predicted = lossless_predict(img, Mode::LINEAR, {0.0, 1.0, 3.0, 2.0});
+    cv::Mat1s e = error_matrix(img, predicted);
     
-    std::unique_ptr<Node> tree = std::move(huffman_init(img));
+    /*
+    Don't need to worry about Huffman coding having to handle negative values of
+    errors: for the algorithm it is simply another symbol having an associated
+    probability value.
+    */
+    std::unique_ptr<Node> tree = std::move(huffman_init(e));
     std::unordered_map<int, std::string> table;
     huffman_codemap(tree.get(), table);
-    huffman_encode(img, table, "intermediate.txt");
-    cv::Mat out = huffman_decode(img.rows, img.cols, img.channels(), img.depth(), "intermediate.txt", tree.get());
+    huffman_encode(e, table, "intermediate.txt");
     
-    cv::imshow("Decoded", out);
+    cv::Mat out = huffman_decode(e.rows, e.cols, e.channels(), e.depth(), "intermediate.txt", tree.get());
+    cv::Mat1b decoded = lossless_decode(out, Mode::LINEAR, {0.0, 1.0, 3.0, 2.0});
+    cv::imshow("Decoded", decoded);
     cv::waitKey(0);
 
     std::filesystem::path p{"../test_imgs/grayscale.bmp"};

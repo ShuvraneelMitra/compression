@@ -9,7 +9,7 @@ Tests for linking of OpenCV and running basic operations
 */
 
 int main() {
-    cv::Mat img = cv::imread("../test_img.bmp", cv::IMREAD_COLOR);
+    cv::Mat img = cv::imread("../test_imgs/test_img.bmp", cv::IMREAD_COLOR);
     if (img.empty()) {
         std::cerr << "Error: could not load image\n";
         return -1;

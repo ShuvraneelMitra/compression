@@ -28,6 +28,14 @@ std::unique_ptr<Node> huffman_init(const cv::Mat& A) {
                 break;
             }
 
+            case CV_16S:{
+                const short* row_ptr = A.ptr<short>(r);
+                for (int c = 0; c < A.cols * channels; ++c){
+                    freq[row_ptr[c]]++;
+                }
+                break;
+            }
+
             case CV_32F: {
                 const float* fptr = A.ptr<float>(r);
                 for (int c = 0; c < A.cols * channels; ++c){
@@ -99,13 +107,21 @@ std::unique_ptr<Node> huffman_init(const std::vector<cv::Mat>& images) {
                     break;
                 }
 
+                case CV_16S: {
+                    const short* row_ptr = img.ptr<short>(r);
+                    for (int c = 0; c < img.cols * channels; ++c){
+                        freq[row_ptr[c]]++;
+                    }
+                    break;
+                }
+
                 case CV_32F: {
                     const float* fptr = img.ptr<float>(r);
                     for (int c = 0; c < img.cols * channels; ++c){
                         int symbol = static_cast<int>(fptr[c] * 255.0f);
                         freq[symbol]++; 
                     }
-                    break;
+                    break; 
                 }
 
                 case CV_8S: {
@@ -220,6 +236,16 @@ void huffman_encode(const cv::Mat& A,
                 break;
             }
 
+            case CV_16S: {
+                const short* row_ptr = A.ptr<short>(r);
+                for (int c = 0; c < A.cols * channels; ++c){
+                    for (char b : table[row_ptr[c]]) {
+                        write_bit(b == '1');
+                    }
+                }
+                break;
+            }
+
             case CV_32F: {
                 const float* fptr = A.ptr<float>(r);
                 for (int c = 0; c < A.cols * channels; ++c){
@@ -303,6 +329,14 @@ cv::Mat huffman_decode(int rows,
                 uchar* row_ptr = output.ptr<uchar>(r);
                 for (int c = 0; c < cols * channels; ++c) {
                     row_ptr[c] = static_cast<uchar>(decoded_symbols[idx++]);
+                }
+                break;
+            }
+
+            case CV_16S: {
+                short* row_ptr = output.ptr<short>(r);
+                for (int c = 0; c < cols * channels; ++c) {
+                    row_ptr[c] = static_cast<short>(decoded_symbols[idx++]);
                 }
                 break;
             }
