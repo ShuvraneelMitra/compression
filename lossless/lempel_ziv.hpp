@@ -33,9 +33,9 @@ class Trie {
         int size() const { return last_idx + 1; }
 };
 
-void lz_encode(const cv::Mat& A, std::string fileName);
+void lz_encode(const cv::Mat& A, const std::string& fileName);
 cv::Mat lz_decode(int rows,
                     int cols,
                     int channels,
                     int depth,
-                    std::string inFile);
+                    const std::string& inFile);

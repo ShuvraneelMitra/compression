@@ -176,7 +176,7 @@ void huffman_codemap(const Node* node,
 
 void huffman_encode(const cv::Mat& A,
                     std::unordered_map<int, std::string>& table, 
-                    std::string fileName){
+                    const std::string& fileName){
     /*
     For a matrix p with R rows, C columns and K channels, the memory is:
 
@@ -257,7 +257,7 @@ cv::Mat huffman_decode(int rows,
                     int channels,
                     int depth,
 
-                    std::string inFile, 
+                    const std::string& inFile, 
                     Node* encoding_tree){
     std::ifstream input(inFile, std::ios::binary);
 

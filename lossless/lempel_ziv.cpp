@@ -43,12 +43,14 @@ bool Trie::startsWith(const cv::Mat& A, int start_idx, int end_idx) {
     return true;
 }
 
-void lz_encode(const cv::Mat& A, std::string fileName) {
+void lz_encode(const cv::Mat& A, const std::string& fileName) {
     /*
     Lempel-Ziv encoding is a form of lossless encoding which
     1. assigns a fixed length codeword to a variable length of symbols.
     2. Unlike Huffman coding and arithmetic coding, does not require a priori 
     knowledge of the probabilities of the source symbols. 
+
+    The dictionary that we will maintain is implemented in the form of a trie.
     */
 
     std::ofstream output(fileName, std::ios::binary);
@@ -119,7 +121,7 @@ cv::Mat lz_decode(int rows,
                   int cols,
                   int channels,
                   int depth,
-                  std::string inFile) {
+                  const std::string& inFile) {
     std::ifstream input(inFile, std::ios::binary);
     if (!input.is_open()) {
         throw std::ios_base::failure("Could not open file");
