@@ -5,6 +5,29 @@
 #include "../lossless/huffman.hpp"
 #include "../lossless/predictive.hpp"
 
+void showHistogram(const cv::Mat& src) {
+    // To prove that error entropy is much lesser than image entropy
+    int histSize = 256;    // Number of bins
+    float range[] = { 0, 256 }; 
+    const float* histRange = { range };
+    cv::Mat hist;
+
+    cv::calcHist(&src, 1, 0, cv::Mat(), hist, 1, &histSize, &histRange);
+
+    int hist_w = 512, hist_h = 400;
+    int bin_w = cvRound((double)hist_w / histSize);
+    cv::Mat histImage(hist_h, hist_w, CV_8UC3, cv::Scalar(0, 0, 0));
+    cv::normalize(hist, hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat());
+
+    for (int i = 1; i < histSize; i++) {
+        cv::line(histImage, 
+            cv::Point(bin_w * (i - 1), hist_h - cvRound(hist.at<float>(i - 1))),
+            cv::Point(bin_w * (i), hist_h - cvRound(hist.at<float>(i))),
+            cv::Scalar(255, 255, 255), 2);
+    }
+    cv::imshow("Intensity Histogram", histImage);
+}
+
 int main() {
     cv::Mat1b img = cv::imread("../test_imgs/grayscale.bmp", cv::IMREAD_GRAYSCALE);
     if (img.empty()) {
@@ -46,5 +69,13 @@ int main() {
     std::cout << "Encoded file size: " << fin_size << " bytes\n";
 
     std::cout << "Total reduction = " << (init_size - fin_size) * 100 / init_size << "%\n"; 
+    
+    showHistogram(img);
+    cv::waitKey(0);
+    cv::Mat convertedMat;
+    e = (e + 127);
+    e.convertTo(convertedMat, CV_8U);
+    showHistogram(convertedMat);
+    cv::waitKey(0);
     return 0;
 }
