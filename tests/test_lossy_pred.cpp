@@ -21,7 +21,8 @@ int main() {
     cv::waitKey(0);
 
     cv::Mat1s e = quantized_error(img, Mode::LINEAR, {0.0, 1.0, 3.0, 2.0},
-                                  Norm_Mode::LINEAR, Q_Mode::UNIFORM, 248);
+                                  Norm_Mode::LINEAR, Q_Mode::UNIFORM, 134
+                                );
 
     /*
     Don't need to worry about Huffman coding having to handle negative values of
@@ -50,10 +51,10 @@ int main() {
 
     std::cout << "Total reduction = " << (init_size - fin_size) * 100 / init_size << "%\n"; 
 
-    std::cout << "\nThe MSE of the original image with reference to the predicted is "
+    std::cout << "\nThe MSE of the original image with reference to the reconstructed is "
               << metrics::MSE(img, decoded);
-    std::cout << "\nThe SNR of the original image with reference to the predicted is "
+    std::cout << "\nThe SNR of the original image with reference to the reconstructed is "
               << metrics::SNR(img, decoded);      
-    std::cout << "\nThe PSNR of the original image with reference to the predicted is "
+    std::cout << "\nThe PSNR of the original image with reference to the reconstructed is "
               << metrics::PSNR(img, decoded);      
 }

@@ -1,9 +1,5 @@
 #include "lossy_pred.hpp"
 
-using PredictorFn =
-    uchar(*)(const std::array<uchar,4>&,
-              const std::array<double,4>&);
-
 uchar linear_comb(const std::array<uchar, 4>& neighbours, 
                    const std::array<double, 4>& coeff) {
     double dot_product = 0.0;
@@ -16,6 +12,67 @@ uchar linear_comb(const std::array<uchar, 4>& neighbours,
 constexpr PredictorFn FUNCTIONS[] = {
     linear_comb
 };
+
+double autocorrelation(const cv::Mat& img, int di, int dj) {
+    CV_Assert(img.type() == CV_8UC1);
+
+    double sum = 0.0;
+    long long count = 0;
+
+    for(int i = 0; i < img.rows; ++i) {
+        for(int j = 0; j < img.cols; ++j) {
+
+            int ni = i - di;
+            int nj = j - dj;
+
+            if(ni >= 0 && ni < img.rows && nj >= 0 && nj < img.cols) {
+                double s1 = static_cast<double>(img.at<uchar>(i, j));
+                double s2 = static_cast<double>(img.at<uchar>(ni, nj));
+                sum += s1 * s2;
+                ++count;
+            }
+        }
+    }
+    return (count > 0) ? sum / count : 0.0;
+}
+
+std::array<double, 4> computePredictorCoefficients(const cv::Mat& img) {
+    CV_Assert(img.type() == CV_8UC1);
+
+    auto R = [&](int i, int j) {
+        return autocorrelation(img, i, j);
+    };
+
+    Matrix4x4 phi(
+        R(0,0),  R(0,1),  R(0,2),  R(1,0),
+        R(0,-1), R(0,0),  R(0,1),  R(1,-1),
+        R(0,-2), R(0,-1), R(0,0),  R(1,-2),
+        R(-1,0), R(-1,1), R(-1,2), R(0,0)
+    );
+
+    CoeffVector varphi(
+        R(1,1),
+        R(1,0),
+        R(1,-1),
+        R(0,1)
+    );
+
+    CoeffVector coeffs;
+
+    cv::solve(
+        phi,
+        varphi,
+        coeffs,
+        cv::DECOMP_SVD
+    );
+
+    std::array<double, 4> result;
+    for(int i = 0; i < 4; ++i) {
+        result[i] = coeffs(i);
+    }
+
+    return result;
+}
 
 void normalize_coefficients(std::array<double,4>& coeff,
                             Norm_Mode norm_mode) {
@@ -128,4 +185,22 @@ cv::Mat1b lossy_decode(const cv::Mat1s& e, Mode mode,
     return recon;
 }
 
+cv::Mat1s delta_modulated_error(const cv::Mat1b& A, float alpha) {
+    return quantized_error(
+        A, Mode::LINEAR, {0.0, 0.0, 0.0, alpha}, Norm_Mode::NONE,
+        Q_Mode::UNIFORM, 2
+    );
+}
 
+cv::Mat1s DPCM_Error(const cv::Mat1b& A, int levels) {
+    // The optimal values of the coefficients can be found by solving a matrix equation
+
+    using CoeffVector = cv::Vec4d;
+    using Matrix4x4   = cv::Matx44d;
+
+
+    return quantized_error(
+        A, Mode::LINEAR, computePredictorCoefficients(A), Norm_Mode::NONE,
+        Q_Mode::UNIFORM, levels
+    );
+}

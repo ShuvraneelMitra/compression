@@ -12,6 +12,7 @@ I took a course in my sixth semester called "*Multimedia Systems and Application
     - Lossless Predictive Coding
 - Lossy Compression Algorithms
     - Lossy Predictive Coding
+    - Differential Pulse Code Modulation
 
 We use BitMap (`.bmp`) image files for testing the algorithms because they are in the most uncompressed form.
 
