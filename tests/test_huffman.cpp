@@ -2,6 +2,7 @@
 #include <iostream>
 #include <filesystem>
 
+#include "../metrics.hpp"
 #include "../lossless/huffman.hpp"
 
 int main() {
@@ -36,5 +37,12 @@ int main() {
     std::cout << "Encoded file size: " << fin_size << " bytes\n";
 
     std::cout << "Total reduction = " << (init_size - fin_size) * 100 / init_size << "%\n"; 
+
+    std::cout << "\nThe MSE of the original image with reference to the predicted is "
+              << metrics::MSE(img, out);
+    std::cout << "\nThe SNR of the original image with reference to the predicted is "
+              << metrics::SNR(img, out);      
+    std::cout << "\nThe PSNR of the original image with reference to the predicted is "
+              << metrics::PSNR(img, out);      
     return 0;
 }

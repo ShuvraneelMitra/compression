@@ -26,7 +26,7 @@ double metrics::MSE(cv::Mat& x, cv::Mat& y){
     }
 
     return mse;
-}
+} 
 
 double metrics::SNR(cv::Mat& x, cv::Mat& y){
     /*

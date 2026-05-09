@@ -4,30 +4,8 @@
 
 #include "../metrics.hpp"
 #include "../lossless/huffman.hpp"
-#include "../lossless/predictive.hpp"
+#include "../lossy/lossy_pred.hpp"
 
-void showHistogram(const cv::Mat& src) {
-    // To prove that error entropy is much lesser than image entropy
-    int histSize = 256;    // Number of bins
-    float range[] = { 0, 256 }; 
-    const float* histRange = { range };
-    cv::Mat hist;
-
-    cv::calcHist(&src, 1, 0, cv::Mat(), hist, 1, &histSize, &histRange);
-
-    int hist_w = 512, hist_h = 400;
-    int bin_w = cvRound((double)hist_w / histSize);
-    cv::Mat histImage(hist_h, hist_w, CV_8UC3, cv::Scalar(0, 0, 0));
-    cv::normalize(hist, hist, 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat());
-
-    for (int i = 1; i < histSize; i++) {
-        cv::line(histImage, 
-            cv::Point(bin_w * (i - 1), hist_h - cvRound(hist.at<float>(i - 1))),
-            cv::Point(bin_w * (i), hist_h - cvRound(hist.at<float>(i))),
-            cv::Scalar(255, 255, 255), 2);
-    }
-    cv::imshow("Intensity Histogram", histImage);
-}
 
 int main() {
     cv::Mat1b img = cv::imread("../test_imgs/grayscale.bmp", cv::IMREAD_GRAYSCALE);
@@ -42,9 +20,9 @@ int main() {
     cv::imshow("Display", img);
     cv::waitKey(0);
 
-    cv::Mat1b predicted = lossless_predict(img, Mode::LINEAR, {0.0, 1.0, 3.0, 2.0});
-    cv::Mat1s e = error_matrix(img, predicted);
-    
+    cv::Mat1s e = quantized_error(img, Mode::LINEAR, {0.0, 1.0, 3.0, 2.0},
+                                  Norm_Mode::LINEAR, Q_Mode::UNIFORM, 248);
+
     /*
     Don't need to worry about Huffman coding having to handle negative values of
     errors: for the algorithm it is simply another symbol having an associated
@@ -56,8 +34,8 @@ int main() {
     huffman_encode(e, table, "intermediate.txt");
     
     cv::Mat out = huffman_decode(e.rows, e.cols, e.channels(), e.depth(), "intermediate.txt", tree.get());
-    cv::Mat1b decoded = lossless_decode(out, Mode::LINEAR, 
-                                        {0.0, 1.0, 3.0, 2.0}, Norm_Mode::LINEAR);
+    cv::Mat1b decoded = lossy_decode(out, Mode::LINEAR, 
+                                    {0.0, 1.0, 3.0, 2.0}, Norm_Mode::LINEAR);
     cv::imshow("Decoded", decoded);
     cv::waitKey(0);
 
@@ -77,14 +55,5 @@ int main() {
     std::cout << "\nThe SNR of the original image with reference to the predicted is "
               << metrics::SNR(img, decoded);      
     std::cout << "\nThe PSNR of the original image with reference to the predicted is "
-              << metrics::PSNR(img, decoded);         
-    
-    showHistogram(img);
-    cv::waitKey(0);
-    cv::Mat convertedMat;
-    e = (e + 127);
-    e.convertTo(convertedMat, CV_8U);
-    showHistogram(convertedMat);
-    cv::waitKey(0);
-    return 0;
+              << metrics::PSNR(img, decoded);      
 }
