@@ -26,6 +26,21 @@ class UniformQuantizer {
 
             return static_cast<T>(min_val + idx * h +  h/2); 
         }
+
+        cv::Mat_<T> quantize(const cv::Mat_<U>& A)
+        {
+            cv::Mat_<T> output(A.rows, A.cols);
+            const U* in_ptr = A.template ptr<U>(0);
+            T* out_ptr = output.template ptr<T>(0);
+
+            size_t total = A.total();
+
+            for(size_t i = 0; i < total; ++i) {
+                out_ptr[i] = quantize(in_ptr[i]);
+            }
+
+            return output;
+        }
 };
 
 // TODO: Implement Adaptive quantization

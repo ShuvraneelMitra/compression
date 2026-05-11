@@ -3,8 +3,9 @@
 #include <filesystem>
 
 #include "../metrics.hpp"
+#include "../transform/kl_transform.hpp"
 #include "../lossless/huffman.hpp"
-#include "../lossy/lossy_pred.hpp"
+#include "../lossy/quantizer.hpp"
 
 
 int main() {
@@ -20,27 +21,31 @@ int main() {
     cv::imshow("Display", img);
     cv::waitKey(0);
 
-    cv::Mat1s e = quantized_error(img, Mode::LINEAR, {0.0, 1.0, 3.0, 2.0},
-                                  Norm_Mode::LINEAR, Q_Mode::UNIFORM, 14
-                                );
+    const int BLOCK_SIZE = 16;
 
+    std::tuple<cv::Mat1d, cv::Mat1d, cv::Mat1d, cv::Mat1d> tup = 
+                        kl_transform(img, BLOCK_SIZE, 40);
     /*
     Don't need to worry about Huffman coding having to handle negative values of
     errors: for the algorithm it is simply another symbol having an associated
     probability value.
     */
-    std::unique_ptr<Node> tree = std::move(huffman_init(e));
+    cv::Mat1d coeffs = std::get<0>(tup);
+
+    UniformQuantizer<uchar, double> uq(0, 255, 100);
+    cv::Mat1b quantized_coeffs = uq.quantize(coeffs);
+
+    std::unique_ptr<Node> tree = std::move(huffman_init(coeffs));
     std::unordered_map<int, std::string> table;
     huffman_codemap(tree.get(), table);
-    huffman_encode(e, table, "intermediate.txt");
+    huffman_encode(coeffs, table, "intermediate.txt");
     
-    cv::Mat out = huffman_decode(e.rows, e.cols, e.channels(), e.depth(), "intermediate.txt", tree.get());
-    cv::Mat1b decoded = lossy_decode(out, Mode::LINEAR, 
-                                    {0.0, 1.0, 3.0, 2.0}, Norm_Mode::LINEAR);
+    cv::Mat out = huffman_decode(coeffs.rows, coeffs.cols, coeffs.channels(), coeffs.depth(), "intermediate.txt", tree.get());
+    cv::Mat1b decoded = kl_reconstruct(img.rows, coeffs, std::get<2>(tup), std::get<3>(tup), BLOCK_SIZE);
     cv::imshow("Decoded", decoded);
     cv::waitKey(0);
 
-    std::filesystem::path p{"../test_imgs/grayscale.bmp"};
+    std::filesystem::path p{"../test_imgs/512x512.bmp"};
     // Returns file size in bytes as std::uintmax_t
     auto init_size = std::filesystem::file_size(p); 
     std::cout << "Original file size: " << init_size << " bytes\n";

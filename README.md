@@ -12,7 +12,10 @@ I took a course in my sixth semester called "*Multimedia Systems and Application
     - Lossless Predictive Coding
 - Lossy Compression Algorithms
     - Lossy Predictive Coding
-    - Differential Pulse Code Modulation
+    - Differential Pulse Code Modulation (in `lossy/lossy_pred`)
+- Transform-Domain Coding
+    - K-L Transform
+    - 
 
 We use BitMap (`.bmp`) image files for testing the algorithms because they are in the most uncompressed form.
 

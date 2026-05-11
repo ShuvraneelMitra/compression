@@ -36,6 +36,7 @@ std::unique_ptr<Node> huffman_init(const cv::Mat& A) {
                 break;
             }
 
+            case CV_64F:
             case CV_32F: {
                 const float* fptr = A.ptr<float>(r);
                 for (int c = 0; c < A.cols * channels; ++c){
@@ -115,6 +116,7 @@ std::unique_ptr<Node> huffman_init(const std::vector<cv::Mat>& images) {
                     break;
                 }
 
+                case CV_64F:
                 case CV_32F: {
                     const float* fptr = img.ptr<float>(r);
                     for (int c = 0; c < img.cols * channels; ++c){
@@ -244,8 +246,10 @@ void huffman_encode(const cv::Mat& A,
                     }
                 }
                 break;
-            }
+            }   
 
+
+            case CV_64F:
             case CV_32F: {
                 const float* fptr = A.ptr<float>(r);
                 for (int c = 0; c < A.cols * channels; ++c){
@@ -341,6 +345,7 @@ cv::Mat huffman_decode(int rows,
                 break;
             }
 
+            case CV_64F:
             case CV_32F: {
                 float* row_ptr = output.ptr<float>(r);
                 for (int c = 0; c < cols * channels; ++c) {
