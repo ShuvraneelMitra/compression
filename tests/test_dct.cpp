@@ -1,5 +1,9 @@
-#include "../transform/dct.hpp"
 #include <filesystem>
+
+#include "../metrics.hpp"
+#include "../transform/dct.hpp"
+#include "../lossless/huffman.hpp"
+#include "../lossy/quantizer.hpp"
 
 int main() {
     cv::Mat1b input = (cv::Mat1b(8,8) <<
@@ -90,11 +94,38 @@ int main() {
     cv::imshow("DCT Magnitude", display);
     cv::waitKey(0);
 
+    UniformQuantizer<uchar, double> uq(0, 255, 32);
+    cv::Mat1b quantized_coeffs = uq.quantize(dct_coeffs);
 
-    reconstructed = idct_fast(dct_coeffs, BLOCK_SIZE);
+    std::unique_ptr<Node> tree = std::move(huffman_init(dct_coeffs));
+    std::unordered_map<int, std::string> table;
+    huffman_codemap(tree.get(), table);
+    huffman_encode(dct_coeffs, table, "intermediate.txt");
+    
+    cv::Mat out = huffman_decode(dct_coeffs.rows, dct_coeffs.cols, dct_coeffs.channels(), dct_coeffs.depth(), "intermediate.txt", tree.get());
+
+    reconstructed = idct_fast(out, BLOCK_SIZE);
     reconstructed.convertTo(reconstructed_u8, CV_8U);
 
     cv::imshow("Reconstructed", reconstructed_u8);
     cv::waitKey(0);
+
+    std::filesystem::path p{"../test_imgs/512x512.bmp"};
+    // Returns file size in bytes as std::uintmax_t
+    auto init_size = std::filesystem::file_size(p); 
+    std::cout << "Original file size: " << init_size << " bytes\n";
+
+    std::filesystem::path q{"intermediate.txt"};  
+    auto fin_size = std::filesystem::file_size(q); 
+    std::cout << "Encoded file size: " << fin_size << " bytes\n";
+
+    std::cout << "Total reduction = " << (init_size - fin_size) * 100 / init_size << "%\n"; 
+
+    std::cout << "\nThe MSE of the original image with reference to the reconstructed is "
+              << metrics::MSE(img, reconstructed);
+    std::cout << "\nThe SNR of the original image with reference to the reconstructed is "
+              << metrics::SNR(img, reconstructed);      
+    std::cout << "\nThe PSNR of the original image with reference to the reconstructed is "
+              << metrics::PSNR(img, reconstructed);  
     return 0;
 }
