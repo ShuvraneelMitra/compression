@@ -395,3 +395,151 @@ cv::Mat1s idct_fast(const cv::Mat1s& coeffs, uint block_size) {
 
     return out;
 }
+
+cv::Mat1d find_block_mean(const cv::Mat& A, uint block_size){
+    cv::Mat1d mean = cv::Mat1d::zeros(A.rows, A.cols);
+
+    int n = A.rows;
+    int d = n / block_size;
+    int num_blocks = d * d;
+
+    for(int i = 0; i < d; ++i){
+        for(int j = 0; j < d; ++j){
+            cv::Rect block(j * block_size, i * block_size,
+                            block_size, block_size);
+            cv::Mat submatrix = A(block);
+            
+            mean += submatrix;
+        }
+    }
+
+    mean /= num_blocks;
+    return mean;
+}
+
+cv::Mat1b zonal_coding(const cv::Mat& A, uint block_size, 
+                       const cv::Mat& mask, uint B, BitAlloc mode,
+                       uint q_levels){
+
+    // B is the number of bits allocated to a single block
+    // This function quantizes the output before returning
+
+    int n = A.rows;
+    int d = n / block_size;
+    int num_blocks = d * d;
+    int num_retained_per_block = cv::sum(mask)[0];
+    UniformQuantizer<uchar, double> uq(0, 255, q_levels);
+
+    if(A.rows != A.cols) 
+        throw std::invalid_argument("Input image should be square and grayscale!");
+
+    cv::Mat retained;
+    for(int i = 0; i < d; ++i){
+        for(int j = 0; j < d; ++j){
+            cv::Rect block(j * block_size, i * block_size,
+                            block_size, block_size);
+            cv::Mat submatrix = retained(block);
+            cv::Mat A_sub = A(block);
+
+            cv::Mat retained = A_sub.mul(mask);
+            retained.copyTo(submatrix);
+        }
+    }
+    
+    cv::Mat1d variances(block_size, block_size);
+    cv::Mat1d mean = find_block_mean(A, block_size);
+
+    for(int i = 0; i < d; ++i){
+        for(int j = 0; j < d; ++j){
+            cv::Rect block(j * block_size, i * block_size,
+                            block_size, block_size);
+            cv::Mat A_sub = A(block);
+            
+            variances += (A_sub - mean).mul(A_sub - mean);
+        }
+    }
+    variances /= (num_blocks - 1);
+
+    double mean_logv = 0.0;
+    for(int u = 0; u < block_size; ++u){
+        for(int v = 0; v < block_size; ++v){
+            mean_logv += log2(variances(u, v));
+        }
+    }
+    mean_logv /= num_retained_per_block;
+
+    if(mode == BitAlloc::UNIFORM){
+        for(int i = 0; i < d; ++i){
+            for(int j = 0; j < d; ++j){
+                cv::Rect block(j * block_size, i * block_size,
+                                block_size, block_size);
+                cv::Mat1i submatrix = retained(block);
+                
+                int num_bits = B / num_retained_per_block;
+                int bit_mask = (1 << num_bits) - 1;
+                
+                for(int u = 0; u < block_size; ++u){
+                    for(int v = 0; v < block_size; ++v){
+                        int val = (intify_and_saturate(submatrix(u, v), 0, bit_mask));
+                        val /= variances(u, v);
+                        submatrix(u, v) = uq.quantize(val);
+                    }
+                }
+            }
+        }
+    }
+
+    else if(mode == BitAlloc::VARIANCE_BASED){
+        /*
+        Let B be the number of bits available to a block for allocation. The number of bits
+        allocated to the ith retained coefficient is given by 
+        b_i = (B/M) + 1/2 * log_2 (variances(i)) - mean(sum of log variances)
+        where M is the number of retained coefficients.
+
+        All the b_i's sum to 1.
+        */
+
+        for(int i = 0; i < d; ++i){
+            for(int j = 0; j < d; ++j){
+                cv::Rect block(j * block_size, i * block_size,
+                                block_size, block_size);
+                cv::Mat1i submatrix = retained(block);
+                
+                for(int u = 0; u < block_size; ++u){
+                    for(int v = 0; v < block_size; ++v){
+                        int num_bits = B / num_retained_per_block + 0.5 * (log2(variances(u, v) - mean_logv));
+                        int bit_mask = (1 << num_bits) - 1;
+                        int val = (intify_and_saturate(submatrix(u, v), 0, bit_mask));
+                        submatrix(u, v) =  val;
+                    }
+                }
+            }
+        }
+    }
+
+    return retained;
+}
+
+cv::Mat1b threshold_coding(const cv::Mat& A, uint block_size, const cv::Mat1d& Q){
+    int n = A.rows;
+    int d = n / block_size;
+    int num_blocks = d * d;
+
+    cv::Mat1b out = cv::Mat1b::zeros(A.rows, A.cols);
+
+    if(A.rows != A.cols) 
+        throw std::invalid_argument("Input image should be square and grayscale!");
+
+    for(int i = 0; i < d; ++i){
+        for(int j = 0; j < d; ++j){
+            cv::Rect block(j * block_size, i * block_size,
+                            block_size, block_size);
+            cv::Mat submatrix = A(block);
+            cv::Mat out_sub = out(block);
+
+            cv::Mat1d quantized = submatrix / Q;
+            quantized.convertTo(out_sub, CV_8U);
+        }
+    }
+    return out;
+}
