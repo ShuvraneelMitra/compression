@@ -6,7 +6,7 @@
 #include "../transform/subband.hpp"
 
 int main() {
-    cv::Mat1b img = cv::imread("../test_imgs/512x512.bmp", cv::IMREAD_GRAYSCALE);
+    cv::Mat1b img = cv::imread("../test_imgs/high_res.bmp", cv::IMREAD_GRAYSCALE);
     if (img.empty()) {
         std::cerr << "Error: could not load image\n";
         return -1;
@@ -68,22 +68,26 @@ int main() {
         0.00011747678412476953
     );
 
-    std::vector<cv::Mat1d> subbands = decompose_4(img, db8_lpf, haar_hpf);
+    const int LEVELS = 3;
+
+    std::vector<cv::Mat1d> subbands = decompose(img, haar_lpf, haar_hpf, LEVELS);
     std::cout << "Each subband has height: " << subbands[0].rows << 
                  " and width: " << subbands[0].cols << "\n";
 
-    cv::Mat1b LL, LH, HL, HH;
-    cv::normalize(subbands[0], LL, 0, 255, cv::NORM_MINMAX, CV_8U);
-    cv::imshow("Subband 0: Approximation", LL);
-    cv::normalize(subbands[1], LH, 0, 255, cv::NORM_MINMAX, CV_8U);
-    cv::imshow("Subband 1: Vertical", LH);
-    cv::normalize(subbands[2], HL, 0, 255, cv::NORM_MINMAX, CV_8U);
-    cv::imshow("Subband 2: Horizontal", HL);
-    cv::normalize(subbands[3], HH, 0, 255, cv::NORM_MINMAX, CV_8U);
-    cv::imshow("Subband 3: Diagonal", HH);
-    cv::waitKey(0);
+    if(LEVELS == 1){
+        cv::Mat1b LL, LH, HL, HH;
+        cv::normalize(subbands[0], LL, 0, 255, cv::NORM_MINMAX, CV_8U);
+        cv::imshow("Subband 0: Approximation", LL);
+        cv::normalize(subbands[1], LH, 0, 255, cv::NORM_MINMAX, CV_8U);
+        cv::imshow("Subband 1: Vertical", LH);
+        cv::normalize(subbands[2], HL, 0, 255, cv::NORM_MINMAX, CV_8U);
+        cv::imshow("Subband 2: Horizontal", HL);
+        cv::normalize(subbands[3], HH, 0, 255, cv::NORM_MINMAX, CV_8U);
+        cv::imshow("Subband 3: Diagonal", HH);
+        cv::waitKey(0);
+    }
 
-    cv::Mat1d reconstructed = recombine_4(subbands, db8_lpf, haar_hpf);
+    cv::Mat1d reconstructed = recombine(subbands, haar_lpf, haar_hpf, LEVELS);
     cv::Mat1b reconstructed_vis;
     reconstructed.convertTo(reconstructed_vis, CV_8U);
     cv::imshow("Reconstructed", reconstructed_vis);

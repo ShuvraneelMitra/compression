@@ -1,5 +1,15 @@
 #include "subband.hpp"
 
+inline long long binpow(int a, int n){
+    long long result = 1;
+    while(n > 0){
+        if(n & 1) result *= a;
+        a *= a;
+        n /= 2;
+    }
+    return result;
+}
+
 cv::Mat1d downsample_cols(const cv::Mat1d& input) {
     cv::Mat1d output(input.rows, (input.cols + 1) / 2);
 
@@ -50,7 +60,7 @@ cv::Mat1d upsample_rows(const cv::Mat1d& input) {
     return output;
 }
 
-std::vector<cv::Mat1d> decompose_4(const cv::Mat& A, const cv::Mat& lpf, const cv::Mat& hpf){
+std::vector<cv::Mat1d> decompose(const cv::Mat& A, const cv::Mat& lpf, const cv::Mat& hpf){
     /*
     2D wavelet decomposition using separable filter banks:
 
@@ -85,17 +95,17 @@ std::vector<cv::Mat1d> decompose_4(const cv::Mat& A, const cv::Mat& lpf, const c
     cv::Mat col_hpf = row_hpf.t();
 
     cv::Mat1d L, H;
-    cv::filter2D(img64, L, CV_64F, col_lpf);
-    cv::filter2D(img64, H, CV_64F, col_hpf);
+    cv::filter2D(img64, L, CV_64F, col_lpf, cv::Point(-1, -1), 0, cv::BORDER_REFLECT);
+    cv::filter2D(img64, H, CV_64F, col_hpf, cv::Point(-1, -1), 0, cv::BORDER_REFLECT);
 
     L = downsample_rows(L);
     H = downsample_rows(H);
 
     cv::Mat1d LL, LH, HL, HH;
-    cv::filter2D(L, LL, CV_64F, row_lpf);
-    cv::filter2D(L, LH, CV_64F, row_hpf);
-    cv::filter2D(H, HL, CV_64F, row_lpf);
-    cv::filter2D(H, HH, CV_64F, row_hpf);
+    cv::filter2D(L, LL, CV_64F, row_lpf, cv::Point(-1, -1), 0, cv::BORDER_REFLECT);
+    cv::filter2D(L, LH, CV_64F, row_hpf, cv::Point(-1, -1), 0, cv::BORDER_REFLECT);
+    cv::filter2D(H, HL, CV_64F, row_lpf, cv::Point(-1, -1), 0, cv::BORDER_REFLECT);
+    cv::filter2D(H, HH, CV_64F, row_hpf, cv::Point(-1, -1), 0, cv::BORDER_REFLECT);
 
     LL = downsample_cols(LL);
     LH = downsample_cols(LH);
@@ -105,7 +115,7 @@ std::vector<cv::Mat1d> decompose_4(const cv::Mat& A, const cv::Mat& lpf, const c
     return {LL, LH, HL, HH};
 }
 
-cv::Mat1d recombine_4(const std::vector<cv::Mat1d>& subbands, const cv::Mat& lpf, const cv::Mat& hpf){
+cv::Mat1d recombine(const std::vector<cv::Mat1d>& subbands, const cv::Mat& lpf, const cv::Mat& hpf){
     /*
     Reconstructs 4 subbands into the original image. For ensuring
     near-perfect reconstruction, supply the function with the lpf and 
@@ -121,7 +131,7 @@ cv::Mat1d recombine_4(const std::vector<cv::Mat1d>& subbands, const cv::Mat& lpf
     */
     
     if(subbands.size() != 4)
-        throw std::invalid_argument("Size of subband vector should be exactly 4!");
+        throw std::invalid_argument("Size of subband vector should be exactly 4! The size passed is " + std::to_string(subbands.size()));
 
     cv::Mat a = upsample_cols(subbands[0]);
     cv::Mat dv = upsample_cols(subbands[1]);
@@ -129,18 +139,23 @@ cv::Mat1d recombine_4(const std::vector<cv::Mat1d>& subbands, const cv::Mat& lpf
     cv::Mat dd = upsample_cols(subbands[3]);
 
     // New filter calculation
-    cv::Mat1d lpf_recomb = cv::Mat1d::zeros(hpf.rows, hpf.cols); 
-    cv::Mat1d hpf_recomb = cv::Mat1d::zeros(lpf.rows, lpf.cols);
-    for(int i = 0; i < lpf_recomb.cols; ++i) 
-        lpf_recomb(0, i) = (i % 2)? (-hpf.at<double>(0, i)) : hpf.at<double>(0, i); 
-    for(int i = 0; i < hpf_recomb.cols; ++i) 
-        hpf_recomb(0, i) = (i % 2)? (lpf.at<double>(0, i)) : -lpf.at<double>(0, i); 
+    cv::Mat1d lpf64, hpf64;
+    lpf.convertTo(lpf64, CV_64F);
+    hpf.convertTo(hpf64, CV_64F);
+
+    cv::Mat1d lpf_recomb(1, lpf64.cols);
+    cv::Mat1d hpf_recomb(1, hpf64.cols);
+
+    for(int i = 0; i < lpf64.cols; ++i) {
+        lpf_recomb(0, i) = lpf64(0, lpf64.cols - 1 - i);
+        hpf_recomb(0, i) = hpf64(0, hpf64.cols - 1 - i);
+    }
 
     cv::Mat filtered_a, filtered_dv, filtered_dh, filtered_dd;
-    cv::filter2D(a, filtered_a, CV_64F, lpf_recomb);
-    cv::filter2D(dv, filtered_dv, CV_64F, hpf_recomb);
-    cv::filter2D(dh, filtered_dh, CV_64F, lpf_recomb);
-    cv::filter2D(dd, filtered_dd, CV_64F, hpf_recomb);
+    cv::filter2D(a, filtered_a, CV_64F, lpf_recomb, cv::Point(-1, -1), 0, cv::BORDER_REFLECT);
+    cv::filter2D(dv, filtered_dv, CV_64F, hpf_recomb, cv::Point(-1, -1), 0, cv::BORDER_REFLECT);
+    cv::filter2D(dh, filtered_dh, CV_64F, lpf_recomb, cv::Point(-1, -1), 0, cv::BORDER_REFLECT);
+    cv::filter2D(dd, filtered_dd, CV_64F, hpf_recomb, cv::Point(-1, -1), 0, cv::BORDER_REFLECT);
 
     cv::Mat combined_cols_for_lpf = filtered_a + filtered_dv;
     cv::Mat combined_cols_for_hpf = filtered_dh + filtered_dd;
@@ -149,8 +164,47 @@ cv::Mat1d recombine_4(const std::vector<cv::Mat1d>& subbands, const cv::Mat& lpf
     cv::Mat upsampled_for_hpf = upsample_rows(combined_cols_for_hpf);
 
     cv::Mat1d lpf_out, hpf_out;
-    cv::filter2D(upsampled_for_lpf, lpf_out, CV_64F, lpf_recomb.t());
-    cv::filter2D(upsampled_for_hpf, hpf_out, CV_64F, hpf_recomb.t());
+    cv::filter2D(upsampled_for_lpf, lpf_out, CV_64F, lpf_recomb.t(), cv::Point(-1, -1), 0, cv::BORDER_REFLECT);
+    cv::filter2D(upsampled_for_hpf, hpf_out, CV_64F, hpf_recomb.t(), cv::Point(-1, -1), 0, cv::BORDER_REFLECT);
 
     return lpf_out + hpf_out;
+}
+
+std::vector<cv::Mat1d> decompose(const cv::Mat& A, const cv::Mat& lpf, const cv::Mat& hpf, uint levels){
+    /*
+    Decompose the image A into 4^n subbands in a hierarchical manner.
+    decompose_4() is equivalent to putting level = 1 in this function.
+    */
+    std::vector<cv::Mat1d> parents, children;
+    parents.push_back(A);
+
+    for(int l = 0; l < levels; l++){
+        children.clear();
+        children.resize(parents.size() * 4);
+        for(int i = 0; i < parents.size(); ++i){
+            auto res = decompose(parents[i], lpf, hpf);
+            std::copy(res.begin(), res.end(), children.begin() + 4 * i); 
+        }
+        parents = children;
+    }
+    return parents;
+}
+
+cv::Mat1d recombine(const std::vector<cv::Mat1d>& subbands, const cv::Mat& lpf, 
+                    const cv::Mat& hpf, uint levels) {
+    std::vector<cv::Mat1d> parents, children;
+    children = subbands;
+
+    for(int l = 0; l < levels; l++){
+        parents.clear();
+        parents.resize(children.size() / 4);
+        for(int i = 0; i < parents.size(); ++i){
+            std::vector<cv::Mat1d> local_subs(children.begin() + 4 * i, children.begin() + 4 * i + 4);
+            auto res = recombine(local_subs, lpf, hpf);
+            parents[i] = res;
+        }
+        children = parents;
+    }
+    CV_Assert(parents.size() == 1);
+    return parents[0];
 }
