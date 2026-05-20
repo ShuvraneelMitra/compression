@@ -11,9 +11,9 @@ set(CMAKE_CXX_COMPILER g++)
 find_package(OpenCV REQUIRED)
 
 add_executable(test 
-               tests/test_dct.cpp
+               tests/test_subband.cpp
                metrics.cpp
                lossless/huffman.cpp
-               transform/dct.cpp
+               transform/subband.cpp
               )
 target_link_libraries(test PRIVATE ${OpenCV_LIBS})

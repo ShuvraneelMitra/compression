@@ -17,6 +17,8 @@ I took a course in my sixth semester called "*Multimedia Systems and Application
     - K-L Transform
     - Discrete Cosine Transform (DCT) and its inverse
     - Bit allocation methods for DCT (Zonal and Threshold coding)
+- Wavelets and MultiResolution Analysis
+    - Subband coding with 4 bands and reconstruction
 
 We use BitMap (`.bmp`) image files for testing the algorithms because they are in the most uncompressed form.
 

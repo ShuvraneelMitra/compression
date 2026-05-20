@@ -21,6 +21,10 @@ cv::Mat1s dct_opencv(const cv::Mat1b& A);
 cv::Mat1s dct_slow(const cv::Mat1b& A, uint block_size);
 cv::Mat1s dct_vetterli(const cv::Mat1b& A, uint block_size);
 cv::Mat1s idct_fast(const cv::Mat1s& coeffs, uint block_size);
+cv::Mat1b zonal_coding(const cv::Mat& A, uint block_size, 
+                       const cv::Mat& mask, uint B, BitAlloc mode,
+                       uint q_levels);
+cv::Mat1b threshold_coding(const cv::Mat& A, uint block_size, const cv::Mat1d& Q);
 
 template<typename T>
 int intify_and_saturate(T x, int low, int high){
