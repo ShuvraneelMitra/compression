@@ -19,6 +19,8 @@ I took a course in my sixth semester called "*Multimedia Systems and Application
     - Bit allocation methods for DCT (Zonal and Threshold coding)
 - Wavelets and MultiResolution Analysis
     - Subband coding with 4 bands and reconstruction
+    - And by extension, the DWT since it can be computed by changing the filters in the subband coding architecture
+    - Embedded Zerotree Wavelet (EZW) coding
 
 We use BitMap (`.bmp`) image files for testing the algorithms because they are in the most uncompressed form.
 

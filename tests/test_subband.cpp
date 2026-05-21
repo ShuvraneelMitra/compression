@@ -6,7 +6,7 @@
 #include "../transform/subband.hpp"
 
 int main() {
-    cv::Mat1b img = cv::imread("../test_imgs/high_res.bmp", cv::IMREAD_GRAYSCALE);
+    cv::Mat1b img = cv::imread("../test_imgs/512x512.bmp", cv::IMREAD_GRAYSCALE);
     if (img.empty()) {
         std::cerr << "Error: could not load image\n";
         return -1;
@@ -70,35 +70,39 @@ int main() {
 
     const int LEVELS = 3;
 
-    std::vector<cv::Mat1d> subbands = decompose(img, haar_lpf, haar_hpf, LEVELS);
-    std::cout << "Each subband has height: " << subbands[0].rows << 
-                 " and width: " << subbands[0].cols << "\n";
+    cv::Mat subbands = decomposeLL(img, haar_lpf, haar_hpf, LEVELS);
+    cv::Mat vis;
+    cv::normalize(subbands, vis, 0, 255, cv::NORM_MINMAX, CV_8U);
+    cv::imshow("Coalesced subbands", vis);
 
-    if(LEVELS == 1){
-        cv::Mat1b LL, LH, HL, HH;
-        cv::normalize(subbands[0], LL, 0, 255, cv::NORM_MINMAX, CV_8U);
-        cv::imshow("Subband 0: Approximation", LL);
-        cv::normalize(subbands[1], LH, 0, 255, cv::NORM_MINMAX, CV_8U);
-        cv::imshow("Subband 1: Vertical", LH);
-        cv::normalize(subbands[2], HL, 0, 255, cv::NORM_MINMAX, CV_8U);
-        cv::imshow("Subband 2: Horizontal", HL);
-        cv::normalize(subbands[3], HH, 0, 255, cv::NORM_MINMAX, CV_8U);
-        cv::imshow("Subband 3: Diagonal", HH);
-        cv::waitKey(0);
-    }
+    // std::cout << "Each subband has height: " << subbands[0].rows << 
+    //              " and width: " << subbands[0].cols << "\n";
 
-    cv::Mat1d reconstructed = recombine(subbands, haar_lpf, haar_hpf, LEVELS);
-    cv::Mat1b reconstructed_vis;
-    reconstructed.convertTo(reconstructed_vis, CV_8U);
-    cv::imshow("Reconstructed", reconstructed_vis);
+    // if(LEVELS == 1){
+    //     cv::Mat1b LL, LH, HL, HH;
+    //     cv::normalize(subbands[0], LL, 0, 255, cv::NORM_MINMAX, CV_8U);
+    //     cv::imshow("Subband 0: Approximation", LL);
+    //     cv::normalize(subbands[1], LH, 0, 255, cv::NORM_MINMAX, CV_8U);
+    //     cv::imshow("Subband 1: Vertical", LH);
+    //     cv::normalize(subbands[2], HL, 0, 255, cv::NORM_MINMAX, CV_8U);
+    //     cv::imshow("Subband 2: Horizontal", HL);
+    //     cv::normalize(subbands[3], HH, 0, 255, cv::NORM_MINMAX, CV_8U);
+    //     cv::imshow("Subband 3: Diagonal", HH);
+    //     cv::waitKey(0);
+    // }
+
+    // cv::Mat1d reconstructed = recombine(subbands, haar_lpf, haar_hpf, LEVELS);
+    // cv::Mat1b reconstructed_vis;
+    // reconstructed.convertTo(reconstructed_vis, CV_8U);
+    // cv::imshow("Reconstructed", reconstructed_vis);
     cv::waitKey(0);
 
-    std::cout << "\nThe MSE of the original image with reference to the reconstructed is "
-              << metrics::MSE(img, reconstructed_vis);
-    std::cout << "\nThe SNR of the original image with reference to the reconstructed is "
-              << metrics::SNR(img, reconstructed_vis);      
-    std::cout << "\nThe PSNR of the original image with reference to the reconstructed is "
-              << metrics::PSNR(img, reconstructed_vis);      
-    return 0;
+    // std::cout << "\nThe MSE of the original image with reference to the reconstructed is "
+    //           << metrics::MSE(img, reconstructed_vis);
+    // std::cout << "\nThe SNR of the original image with reference to the reconstructed is "
+    //           << metrics::SNR(img, reconstructed_vis);      
+    // std::cout << "\nThe PSNR of the original image with reference to the reconstructed is "
+    //           << metrics::PSNR(img, reconstructed_vis);      
+    // return 0;
 }
 

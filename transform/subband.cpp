@@ -208,3 +208,37 @@ cv::Mat1d recombine(const std::vector<cv::Mat1d>& subbands, const cv::Mat& lpf,
     CV_Assert(parents.size() == 1);
     return parents[0];
 }
+
+cv::Mat1d decomposeLL(const cv::Mat& A, const cv::Mat& lpf, const cv::Mat& hpf, uint levels) {
+    /*
+    Same as decompose, only that it rearranges the subbands in the 
+    shape of the original image as 
+
+                [LL      HL]
+                [LH      HH]
+    and only recursively decomposes the LL subband instead of all of them,
+    which decompose() does.
+    */
+    std::vector<cv::Mat1d> subbands;
+    cv::Mat1d LL;
+    A.convertTo(LL, CV_64F);
+    cv::Mat1d results = cv::Mat1d::zeros(A.rows, A.cols);
+    int n = A.rows;
+
+    for(int l = 0; l < levels; l++){
+        n /= 2;
+        subbands = decompose(LL, lpf, hpf);
+        cv::Rect ll_roi(0, 0, n, n);
+        cv::Rect lh_roi(0, n, n, n);
+        cv::Rect hl_roi(n, 0, n, n);
+        cv::Rect hh_roi(n, n, n, n);
+
+        subbands[0].copyTo(results(ll_roi));
+        subbands[1].copyTo(results(lh_roi));
+        subbands[2].copyTo(results(hl_roi));
+        subbands[3].copyTo(results(hh_roi));
+
+        LL = subbands[0];
+    }
+    return results;
+}
