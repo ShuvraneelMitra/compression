@@ -1,7 +1,7 @@
 # **Multimedia Compression Techniques**
 
 This is a C++ Library which implements a number of algorithms that 
-are used for compression of multimedia objects. 
+are used for compression of multimedia objects, specially images. 
 
 I took a course in my sixth semester called "*Multimedia Systems and Applications*" which motivated me to start this project. The algorithms implemented in this repository are:
 
@@ -21,6 +21,8 @@ I took a course in my sixth semester called "*Multimedia Systems and Application
     - Subband coding with 4 bands and reconstruction
     - And by extension, the DWT since it can be computed by changing the filters in the subband coding architecture
     - Embedded Zerotree Wavelet (EZW) coding
+    - Set Partition in Hierarchical Trees (SPIHT)
+    - Embedded Block Coding with Optimized Truncation (EBCOT)
 
 We use BitMap (`.bmp`) image files for testing the algorithms because they are in the most uncompressed form.
 
@@ -33,3 +35,5 @@ We use BitMap (`.bmp`) image files for testing the algorithms because they are i
 ## **NOTES**
 1. The compression achieved via lossless predictive coding, combined with Huffman encoding of the error values, is extremely substantial, with a randomly chosen coefficient set of [0, 1, 3, 2] (before normalization) yielding 81% compression for the grayscale image `grayscale.bmp`, as compared to 8% with only Huffman encoding. 
 2. Quantization improves the compression ratio, although with the tradeoff of image quality. With just 4 levels of quantization, we can get upto 93% compression, although with significantly visible deterioration of quality.
+
+TODO: IMmplement and test algorithms for videos and audio, optionally implement JPEG.

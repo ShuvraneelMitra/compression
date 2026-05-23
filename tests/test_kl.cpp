@@ -22,9 +22,9 @@ int main() {
     cv::waitKey(0);
 
     const int BLOCK_SIZE = 16;
+    const int K = 40;
 
-    std::tuple<cv::Mat1d, cv::Mat1d, cv::Mat1d, cv::Mat1d> tup = 
-                        kl_transform(img, BLOCK_SIZE, 40);
+    auto tup = kl_transform(img, BLOCK_SIZE, K);
     /*
     Don't need to worry about Huffman coding having to handle negative values of
     errors: for the algorithm it is simply another symbol having an associated
